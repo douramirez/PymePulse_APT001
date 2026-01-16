@@ -1,65 +1,138 @@
-import Image from "next/image";
+import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-export default function Home() {
+export default async function HomePage() {
+  const session = await getServerSession(authOptions);
+  if (session) redirect("/dashboard");
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <main className="home page-pad">
+      <header className="hero">
+        <div className="hero-inner">
+          <div className="badge">PymePulse • Capstone</div>
+
+          <h1 className="title">
+            Gestión inteligente para <span>PYMES</span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+
+          <p className="subtitle">
+            Controla inventario, ventas y gastos en un solo lugar. Recibe alertas de stock y riesgo de caja,
+            con un dashboard claro y proyecciones simples.
           </p>
+
+          <div className="cta">
+            <Link className="btn primary" href="/login">
+              Iniciar sesión
+            </Link>
+            <a className="btn ghost" href="#features">
+              Ver funcionalidades
+            </a>
+          </div>
+
+          <div className="stats">
+            <div className="stat">
+              <div className="stat-num">RBAC</div>
+              <div className="stat-label">Roles y permisos</div>
+            </div>
+            <div className="stat">
+              <div className="stat-num">Alertas</div>
+              <div className="stat-label">Stock / Caja</div>
+            </div>
+            <div className="stat">
+              <div className="stat-num">Neon + Prisma</div>
+              <div className="stat-label">PostgreSQL</div>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="hero-card">
+          <div className="card-top">
+            <div className="dot red" />
+            <div className="dot yellow" />
+            <div className="dot green" />
+          </div>
+
+          <div className="card-body">
+            <div className="kpi-grid">
+              <div className="kpi">
+                <div className="kpi-label">Ventas (30d)</div>
+                <div className="kpi-value">$ 1.240.000</div>
+                <div className="kpi-hint">↑ tendencia</div>
+              </div>
+              <div className="kpi">
+                <div className="kpi-label">Gastos (30d)</div>
+                <div className="kpi-value">$ 710.000</div>
+                <div className="kpi-hint">controlable</div>
+              </div>
+              <div className="kpi">
+                <div className="kpi-label">Bajo mínimo</div>
+                <div className="kpi-value">3</div>
+                <div className="kpi-hint danger">reponer</div>
+              </div>
+              <div className="kpi">
+                <div className="kpi-label">Riesgo caja</div>
+                <div className="kpi-value">OK</div>
+                <div className="kpi-hint ok">7 días</div>
+              </div>
+            </div>
+
+            <div className="list">
+              <div className="list-title">Alertas recientes</div>
+              <div className="list-item">
+                <span className="pill danger">LOW_STOCK</span>
+                <span>Stock bajo: Harina (2 ≤ mín 5)</span>
+              </div>
+              <div className="list-item">
+                <span className="pill warn">CASH_RISK</span>
+                <span>Riesgo caja en 30 días</span>
+              </div>
+              <div className="list-item">
+                <span className="pill ok">OK</span>
+                <span>Ventas ≥ gastos (7 días)</span>
+              </div>
+            </div>
+          </div>
         </div>
-      </main>
-    </div>
+      </header>
+
+      <section id="features" className="section">
+        <h2 className="section-title">Funcionalidades</h2>
+        <div className="grid">
+          <div className="feature">
+            <div className="feature-title">Inventario en tiempo real</div>
+            <div className="feature-text">
+              Movimientos IN/OUT/ADJUST con historial y alertas automáticas cuando el stock cae bajo mínimo.
+            </div>
+          </div>
+          <div className="feature">
+            <div className="feature-title">Ventas y gastos</div>
+            <div className="feature-text">
+              Registro simple con totales, impacto directo en stock y consolidación por periodo.
+            </div>
+          </div>
+          <div className="feature">
+            <div className="feature-title">Dashboard + predicción</div>
+            <div className="feature-text">
+              KPIs claros y proyección heurística (promedio diario) para anticipar riesgo de caja.
+            </div>
+          </div>
+          <div className="feature">
+            <div className="feature-title">Seguridad (RBAC)</div>
+            <div className="feature-text">
+              OWNER/ADMIN gestionan; STAFF opera; VIEWER solo lectura. APIs protegidas por rol.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="footer">
+        <div>© {new Date().getFullYear()} PymePulse</div>
+        <div className="footer-right">
+          <span>Capstone • Ingeniería Informática</span>
+        </div>
+      </footer>
+    </main>
   );
 }

@@ -1,0 +1,176 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum InventoryMovementType {
+  IN
+  OUT
+  ADJUST
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+  OTHER
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  users      User[]
+  products   Product[]
+  sales      Sale[]
+  expenses   Expense[]
+  categories ExpenseCategory[]
+  movements  InventoryMovement[]
+  alerts     Alert[]
+}
+
+enum Role {
+  ADMIN
+  OWNER
+  STAFF
+  VIEWER
+}
+
+model User {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  name         String
+  email        String @unique
+  passwordHash String
+  role         Role   @default(STAFF) // <- CAMBIO CLAVE: Role (no String)
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) // SAFE
+
+  sales     Sale[]              @relation("SalesCreatedBy")
+  expenses  Expense[]           @relation("ExpensesCreatedBy")
+  movements InventoryMovement[] @relation("MovementsCreatedBy")
+}
+
+model Product {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  name         String
+  sku          String?
+  unit         String? // "unidad", "kg", etc.
+  costPrice    Decimal @default(0)
+  salePrice    Decimal @default(0)
+  stockCurrent Int     @default(0)
+  stockMin     Int     @default(0)
+  isActive     Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  saleItems SaleItem[]
+  movements InventoryMovement[]
+}
+
+model Sale {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  dateTime      DateTime      @default(now())
+  paymentMethod PaymentMethod @default(OTHER)
+  total         Decimal       @default(0)
+
+  createdByUserId String
+  createdBy       User   @relation("SalesCreatedBy", fields: [createdByUserId], references: [id])
+
+  items SaleItem[]
+}
+
+model SaleItem {
+  id     String @id @default(cuid())
+  saleId String
+  sale   Sale   @relation(fields: [saleId], references: [id])
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  quantity  Int
+  unitPrice Decimal
+  lineTotal Decimal
+}
+
+model ExpenseCategory {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  name String
+
+  expenses Expense[]
+}
+
+model Expense {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  categoryId String
+  category   ExpenseCategory @relation(fields: [categoryId], references: [id])
+
+  date        DateTime @default(now())
+  amount      Decimal
+  description String?
+
+  createdByUserId String
+  createdBy       User   @relation("ExpensesCreatedBy", fields: [createdByUserId], references: [id])
+}
+
+model InventoryMovement {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  type     InventoryMovementType
+  quantity Int
+  reason   String?
+
+  createdAt       DateTime @default(now())
+  createdByUserId String
+  createdBy       User     @relation("MovementsCreatedBy", fields: [createdByUserId], references: [id])
+}
+
+enum AlertType {
+  LOW_STOCK
+  CASH_RISK
+  ANOMALY
+}
+
+enum AlertStatus {
+  OPEN
+  CLOSED
+}
+
+model Alert {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  type      AlertType
+  severity  String
+  message   String
+  status    AlertStatus @default(OPEN)
+  createdAt DateTime    @default(now())
+}
