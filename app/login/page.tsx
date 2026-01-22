@@ -3,11 +3,12 @@
 import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("dueno@demo.cl");
-  const [password, setPassword] = useState("Admin123!");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -65,10 +66,9 @@ export default function LoginPage() {
 
         {error && <p style={{ color: "crimson" }}>{error}</p>}
       </form>
-
-      <p style={{ marginTop: 16, fontSize: 13, opacity: 0.8 }}>
-        Demo: <b>dueno@demo.cl</b> / <b>Admin123!</b>
-      </p>
+      <p style={{ fontSize: 13, opacity: 0.8 }}>
+          ¿No tienes cuenta? <Link href="/register">Regístrate</Link>
+        </p>
     </main>
   );
 }

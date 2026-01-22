@@ -23,13 +23,11 @@ export default async function HomePage() {
           </p>
 
           <div className="cta">
-            <Link className="btn primary" href="/login">
-              Iniciar sesión
-            </Link>
-            <a className="btn ghost" href="#features">
-              Ver funcionalidades
-            </a>
+            <Link className="btn primary" href="/login">Iniciar sesión</Link>
+            <Link className="btn ghost" href="/register">Registrar Pyme</Link>
+            <a className="btn ghost" href="#features">Ver funcionalidades</a>
           </div>
+
 
           <div className="stats">
             <div className="stat">

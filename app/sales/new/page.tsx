@@ -1,86 +1,42 @@
-"use client";
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { prisma } from "@/lib/prisma";
+import SalesPOSClient from "./SalesPOSClient";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+export default async function SalesNewPage() {
+  const session = await getServerSession(authOptions);
+  if (!session) redirect("/login");
 
-type Product = { id: string; name: string; stockCurrent: number };
+  const organizationId = (session as any).organizationId as string;
 
-export default function NewSalePage() {
-  const router = useRouter();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [items, setItems] = useState<{ productId: string; quantity: number }[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const productsRaw = await prisma.product.findMany({
+    where: { organizationId, isActive: true },
+    orderBy: { name: "asc" },
+    select: {
+      id: true,
+      name: true,
+      sku: true,
+      imageUrl: true,
+      unit: true,
+      salePrice: true, // Decimal
+      stockCurrent: true,
+    },
+  });
 
-  useEffect(() => {
-    fetch("/api/products")
-      .then((r) => r.json())
-      .then(setProducts)
-      .catch(() => setProducts([]));
-  }, []);
-
-  function addItem() {
-    setItems([...items, { productId: "", quantity: 1 }]);
-  }
-
-  function updateItem(i: number, field: string, value: any) {
-    const copy = [...items];
-    (copy[i] as any)[field] = value;
-    setItems(copy);
-  }
-
-  async function submit() {
-    setError(null);
-    const res = await fetch("/api/sales", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items }),
-    });
-
-    if (!res.ok) {
-      const d = await res.json().catch(() => ({}));
-      setError(d?.error ?? "Error creando venta");
-      return;
-    }
-
-    router.push("/dashboard");
-  }
+  const products = productsRaw.map((p) => ({
+    ...p,
+    salePrice: Number(p.salePrice),
+  }));
 
   return (
-    <main style={{ padding: 24 }}>
-      <h1 style={{ fontSize: 26, fontWeight: 800 }}>Nueva venta</h1>
+    <main className="page-card">
+      <h1 style={{ fontSize: 26, fontWeight: 900 }}>Nueva venta</h1>
+      <p style={{ opacity: 0.8, marginTop: 6 }}>
+        Escanea el código (SKU/EAN) o busca por nombre y agrega al carrito.
+      </p>
 
-      {items.map((it, i) => (
-        <div key={i} style={{ display: "flex", gap: 8, marginTop: 12 }}>
-          <select
-            value={it.productId}
-            onChange={(e) => updateItem(i, "productId", e.target.value)}
-          >
-            <option value="">Producto…</option>
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} (stock {p.stockCurrent})
-              </option>
-            ))}
-          </select>
-
-          <input
-            type="number"
-            min={1}
-            value={it.quantity}
-            onChange={(e) => updateItem(i, "quantity", Number(e.target.value))}
-          />
-        </div>
-      ))}
-
-      <div style={{ marginTop: 16 }}>
-        <button onClick={addItem}>+ Agregar producto</button>
-      </div>
-
-      <div style={{ marginTop: 16 }}>
-        <button onClick={submit}>Registrar venta</button>
-      </div>
-
-      {error && <p style={{ color: "crimson" }}>{error}</p>}
+      <SalesPOSClient products={products} />
     </main>
   );
 }

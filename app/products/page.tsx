@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
-import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { prisma } from "@/lib/prisma";
+import ProductsClient from "./ProductsClient";
 
 export default async function ProductsPage() {
   const session = await getServerSession(authOptions);
@@ -10,33 +11,45 @@ export default async function ProductsPage() {
 
   const organizationId = (session as any).organizationId as string;
 
-  const products = await prisma.product.findMany({
+  const productsRaw = await prisma.product.findMany({
     where: { organizationId, isActive: true },
     orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      name: true,
+      sku: true,
+      imageUrl: true,
+      unit: true,
+      salePrice: true,      // Decimal en Prisma
+      stockCurrent: true,
+      stockMin: true,
+    },
   });
 
+  // ✅ Convertir Decimal -> number para poder pasar a Client Component
+  const products = productsRaw.map((p) => ({
+    ...p,
+    salePrice: Number(p.salePrice),
+  }));
+
   return (
-    <main style={{ padding: 24 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ fontSize: 26, fontWeight: 800 }}>Productos</h1>
-        <Link href="/products/news" style={{ border: "1px solid #000", padding: "8px 12px", borderRadius: 8 }}>
-          + Nuevo
+    <main className="page-card">
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+        }}
+      >
+        <h1 style={{ fontSize: 26, fontWeight: 900 }}>Productos</h1>
+
+        <Link className="btn primary" href="/products/news">
+          + Nuevo producto
         </Link>
       </div>
 
-      <div style={{ marginTop: 16 }}>
-        {products.length === 0 ? (
-          <p>No hay productos aún. Crea el primero.</p>
-        ) : (
-          <ul style={{ marginTop: 12 }}>
-            {products.map((p) => (
-              <li key={p.id}>
-                {p.name} — stock: {p.stockCurrent} (mín: {p.stockMin})
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      <ProductsClient products={products} />
     </main>
   );
 }

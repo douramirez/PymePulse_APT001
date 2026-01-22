@@ -35,7 +35,7 @@ export default function AccountPage() {
   }
 
   return (
-    <main style={{ maxWidth: 520, margin: "40px auto", padding: 16 }}>
+    <main className="page-card" style={{ maxWidth: 520 }}>
       <h1 style={{ fontSize: 26, fontWeight: 900 }}>Mi cuenta</h1>
 
       <section style={{ marginTop: 16, border: "1px solid #ddd", borderRadius: 12, padding: 14 }}>

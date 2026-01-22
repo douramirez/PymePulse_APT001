@@ -29,6 +29,7 @@ export default function Navbar() {
               <Link href="/inventory">Inventario</Link>
               <Link href="/inventory/history">Historial</Link>
               <Link href="/sales">Ventas</Link>
+              <Link href="/sales/new">Nueva venta</Link>
               <Link href="/expenses">Gastos</Link>
               <Link href="/alerts">Alertas</Link>
               <Link href="/account">Mi cuenta</Link>

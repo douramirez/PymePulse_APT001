@@ -21,7 +21,7 @@ export default async function UsersPage() {
   });
 
   return (
-    <main style={{ padding: 24 }}>
+    <main className="page-card">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1 style={{ fontSize: 26, fontWeight: 900 }}>Usuarios</h1>
         <Link href="/users/new" style={{ border: "1px solid #000", padding: "8px 12px", borderRadius: 8 }}>
@@ -29,11 +29,7 @@ export default async function UsersPage() {
         </Link>
       </div>
 
-      {users.length === 0 ? (
-        <p style={{ marginTop: 16 }}>No hay usuarios.</p>
-      ) : (
-        <UsersTableClient users={users as any} />
-      )}
+      {users.length === 0 ? <p style={{ marginTop: 16 }}>No hay usuarios.</p> : <UsersTableClient users={users as any} />}
     </main>
   );
 }
