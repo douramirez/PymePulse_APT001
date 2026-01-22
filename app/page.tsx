@@ -8,128 +8,241 @@ export default async function HomePage() {
   if (session) redirect("/dashboard");
 
   return (
-    <main className="home page-pad">
-      <header className="hero">
-        <div className="hero-inner">
-          <div className="badge">PymePulse • Capstone</div>
+    <main className="landing">
+      {/* HERO */}
+      <section className="hero2">
+        <div className="hero2-inner">
+          <div className="hero2-left">
+            <div className="badge2">PymePulse • Capstone</div>
 
-          <h1 className="title">
-            Gestión inteligente para <span>PYMES</span>
-          </h1>
+            <h1 className="hero2-title">
+              Gestiona tu <span>PYME</span> como un SaaS moderno
+            </h1>
 
-          <p className="subtitle">
-            Controla inventario, ventas y gastos en un solo lugar. Recibe alertas de stock y riesgo de caja,
-            con un dashboard claro y proyecciones simples.
-          </p>
+            <p className="hero2-sub">
+              Inventario, ventas y gastos en un solo lugar. Alertas automáticas de stock y control de caja
+              con un dashboard claro, rápido y seguro (RBAC).
+            </p>
 
-          <div className="cta">
-            <Link className="btn primary" href="/login">Iniciar sesión</Link>
-            <Link className="btn ghost" href="/register">Registrar Pyme</Link>
-            <a className="btn ghost" href="#features">Ver funcionalidades</a>
+            <div className="hero2-cta">
+              <Link className="btn primary" href="/login">Iniciar sesión</Link>
+              <Link className="btn ghost" href="/register">Registrar Pyme</Link>
+              <a className="btn ghost" href="#demo">Ver demo</a>
+            </div>
+
+            <div className="trust">
+              <div className="trust-item">
+                <div className="trust-top">Neon + Prisma</div>
+                <div className="trust-bottom">PostgreSQL en la nube</div>
+              </div>
+              <div className="trust-item">
+                <div className="trust-top">Next.js</div>
+                <div className="trust-bottom">Rápido y escalable</div>
+              </div>
+              <div className="trust-item">
+                <div className="trust-top">RBAC</div>
+                <div className="trust-bottom">Roles y permisos</div>
+              </div>
+            </div>
           </div>
 
+          {/* MOCKUP */}
+          <div className="hero2-right" id="demo">
+            <div className="mock">
+              <div className="mock-top">
+                <div className="dot red" />
+                <div className="dot yellow" />
+                <div className="dot green" />
+                <div className="mock-title">Dashboard • PymePulse</div>
+              </div>
 
-          <div className="stats">
-            <div className="stat">
-              <div className="stat-num">RBAC</div>
-              <div className="stat-label">Roles y permisos</div>
-            </div>
-            <div className="stat">
-              <div className="stat-num">Alertas</div>
-              <div className="stat-label">Stock / Caja</div>
-            </div>
-            <div className="stat">
-              <div className="stat-num">Neon + Prisma</div>
-              <div className="stat-label">PostgreSQL</div>
+              <div className="mock-body">
+                <div className="mock-kpis">
+                  <div className="mock-kpi">
+                    <div className="mk-label">Ventas (30d)</div>
+                    <div className="mk-value">$ 1.240.000</div>
+                    <div className="mk-hint ok">↑ tendencia</div>
+                  </div>
+                  <div className="mock-kpi">
+                    <div className="mk-label">Gastos (30d)</div>
+                    <div className="mk-value">$ 710.000</div>
+                    <div className="mk-hint warn">controlable</div>
+                  </div>
+                  <div className="mock-kpi">
+                    <div className="mk-label">Stock bajo</div>
+                    <div className="mk-value">3</div>
+                    <div className="mk-hint danger">reponer</div>
+                  </div>
+                  <div className="mock-kpi">
+                    <div className="mk-label">Riesgo caja</div>
+                    <div className="mk-value">OK</div>
+                    <div className="mk-hint ok">7 días</div>
+                  </div>
+                </div>
+
+                <div className="mock-split">
+                  <div className="mock-panel">
+                    <div className="mp-title">Actividad reciente</div>
+
+                    <div className="mp-row">
+                      <span className="pill ok">VENTA</span>
+                      <span>Boleta #A102 • $18.500</span>
+                    </div>
+                    <div className="mp-row">
+                      <span className="pill warn">GASTO</span>
+                      <span>Proveedor • $6.200</span>
+                    </div>
+                    <div className="mp-row">
+                      <span className="pill danger">LOW_STOCK</span>
+                      <span>Harina: 2 ≤ mín 5</span>
+                    </div>
+                  </div>
+
+                  <div className="mock-panel">
+                    <div className="mp-title">Top vendidos</div>
+
+                    <div className="mp-row">
+                      <span className="rank">1</span>
+                      <span>Mantequilla Colun</span>
+                      <span className="mp-right">3 u.</span>
+                    </div>
+                    <div className="mp-row">
+                      <span className="rank">2</span>
+                      <span>Coca 1.5L</span>
+                      <span className="mp-right">2 u.</span>
+                    </div>
+                    <div className="mp-row">
+                      <span className="rank">3</span>
+                      <span>Harina</span>
+                      <span className="mp-right">1 u.</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mock-footer">
+                  <span className="chip ok">RBAC</span>
+                  <span className="chip">PostgreSQL</span>
+                  <span className="chip">Alertas</span>
+                  <span className="chip">Dashboard</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="hero-card">
-          <div className="card-top">
-            <div className="dot red" />
-            <div className="dot yellow" />
-            <div className="dot green" />
-          </div>
+        {/* glow decor */}
+        <div className="glow g1" />
+        <div className="glow g2" />
+      </section>
 
-          <div className="card-body">
-            <div className="kpi-grid">
-              <div className="kpi">
-                <div className="kpi-label">Ventas (30d)</div>
-                <div className="kpi-value">$ 1.240.000</div>
-                <div className="kpi-hint">↑ tendencia</div>
-              </div>
-              <div className="kpi">
-                <div className="kpi-label">Gastos (30d)</div>
-                <div className="kpi-value">$ 710.000</div>
-                <div className="kpi-hint">controlable</div>
-              </div>
-              <div className="kpi">
-                <div className="kpi-label">Bajo mínimo</div>
-                <div className="kpi-value">3</div>
-                <div className="kpi-hint danger">reponer</div>
-              </div>
-              <div className="kpi">
-                <div className="kpi-label">Riesgo caja</div>
-                <div className="kpi-value">OK</div>
-                <div className="kpi-hint ok">7 días</div>
-              </div>
-            </div>
-
-            <div className="list">
-              <div className="list-title">Alertas recientes</div>
-              <div className="list-item">
-                <span className="pill danger">LOW_STOCK</span>
-                <span>Stock bajo: Harina (2 ≤ mín 5)</span>
-              </div>
-              <div className="list-item">
-                <span className="pill warn">CASH_RISK</span>
-                <span>Riesgo caja en 30 días</span>
-              </div>
-              <div className="list-item">
-                <span className="pill ok">OK</span>
-                <span>Ventas ≥ gastos (7 días)</span>
-              </div>
-            </div>
-          </div>
+      {/* HOW IT WORKS */}
+      <section className="section2">
+        <div className="section2-head">
+          <h2 className="h2">Cómo funciona</h2>
+          <p className="muted">Un flujo simple para operar día a día sin complicaciones.</p>
         </div>
-      </header>
 
-      <section id="features" className="section">
-        <h2 className="section-title">Funcionalidades</h2>
-        <div className="grid">
-          <div className="feature">
-            <div className="feature-title">Inventario en tiempo real</div>
-            <div className="feature-text">
-              Movimientos IN/OUT/ADJUST con historial y alertas automáticas cuando el stock cae bajo mínimo.
+        <div className="steps">
+          <div className="step">
+            <div className="step-num">1</div>
+            <div className="step-title">Registra tu Pyme</div>
+            <div className="step-text">
+              Crea tu organización y tu usuario OWNER. Puedes agregar STAFF/VIEWER según necesidad.
             </div>
           </div>
-          <div className="feature">
-            <div className="feature-title">Ventas y gastos</div>
-            <div className="feature-text">
-              Registro simple con totales, impacto directo en stock y consolidación por periodo.
+
+          <div className="step">
+            <div className="step-num">2</div>
+            <div className="step-title">Carga productos</div>
+            <div className="step-text">
+              Guarda SKU/código, precio, costo, mínimos y stock. Ideal para operar y controlar.
             </div>
           </div>
-          <div className="feature">
-            <div className="feature-title">Dashboard + predicción</div>
-            <div className="feature-text">
-              KPIs claros y proyección heurística (promedio diario) para anticipar riesgo de caja.
-            </div>
-          </div>
-          <div className="feature">
-            <div className="feature-title">Seguridad (RBAC)</div>
-            <div className="feature-text">
-              OWNER/ADMIN gestionan; STAFF opera; VIEWER solo lectura. APIs protegidas por rol.
+
+          <div className="step">
+            <div className="step-num">3</div>
+            <div className="step-title">Vende y controla</div>
+            <div className="step-text">
+              Registra ventas y gastos; el sistema muestra KPIs y genera alertas por stock/caja.
             </div>
           </div>
         </div>
       </section>
 
-      <footer className="footer">
-        <div>© {new Date().getFullYear()} PymePulse</div>
-        <div className="footer-right">
-          <span>Capstone • Ingeniería Informática</span>
+      {/* FOR WHO */}
+      <section className="section2">
+        <div className="section2-head">
+          <h2 className="h2">¿Para quién es?</h2>
+          <p className="muted">Pensado para PYMES que necesitan orden sin pagar software caro.</p>
         </div>
+
+        <div className="cases">
+          <div className="case">
+            <div className="case-title">Minimarket / almacén</div>
+            <div className="case-text">Control de stock y productos más vendidos.</div>
+            <div className="case-pill">Inventario + Ventas</div>
+          </div>
+
+          <div className="case">
+            <div className="case-title">Emprendimiento de comida</div>
+            <div className="case-text">Costos vs ventas y alertas de reposición.</div>
+            <div className="case-pill">Gastos + KPIs</div>
+          </div>
+
+          <div className="case">
+            <div className="case-title">Tienda online pequeña</div>
+            <div className="case-text">Orden de catálogo + control por roles.</div>
+            <div className="case-pill">RBAC + Catálogo</div>
+          </div>
+        </div>
+      </section>
+
+      {/* BENEFITS */}
+      <section className="section2">
+        <div className="section2-head">
+          <h2 className="h2">Qué gana la Pyme</h2>
+          <p className="muted">Beneficios concretos que puedes “vender” en la defensa.</p>
+        </div>
+
+        <div className="benefits">
+          <div className="benefit">
+            <div className="benefit-title">Menos quiebres de stock</div>
+            <div className="benefit-text">Alertas automáticas cuando un producto cae bajo mínimo.</div>
+          </div>
+          <div className="benefit">
+            <div className="benefit-title">Control financiero básico</div>
+            <div className="benefit-text">Comparación ventas vs gastos + utilidad estimada por período.</div>
+          </div>
+          <div className="benefit">
+            <div className="benefit-title">Seguridad y trazabilidad</div>
+            <div className="benefit-text">Roles (OWNER/ADMIN/STAFF/VIEWER) y acciones con usuario responsable.</div>
+          </div>
+          <div className="benefit">
+            <div className="benefit-title">Escalable</div>
+            <div className="benefit-text">PostgreSQL en la nube (Neon) + ORM Prisma para crecer sin dolores.</div>
+          </div>
+        </div>
+      </section>
+
+      {/* FINAL CTA */}
+      <section className="cta2">
+        <div className="cta2-card">
+          <div>
+            <h3 className="h3">Listo para ordenar tu Pyme</h3>
+            <p className="muted">
+              Registra tu organización y empieza a controlar inventario, ventas y gastos en minutos.
+            </p>
+          </div>
+          <div className="cta2-actions">
+            <Link className="btn primary" href="/register">Crear cuenta Pyme</Link>
+            <Link className="btn" href="/login">Ya tengo cuenta</Link>
+          </div>
+        </div>
+      </section>
+
+      <footer className="landing-footer">
+        <div>© {new Date().getFullYear()} PymePulse</div>
+        <div className="muted">Capstone • Ingeniería Informática</div>
       </footer>
     </main>
   );

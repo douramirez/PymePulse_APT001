@@ -1,57 +1,51 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
+import { usePathname } from "next/navigation";
+
+function NavLink({ href, label }: { href: string; label: string }) {
+  const pathname = usePathname();
+  const active = pathname === href || pathname.startsWith(href + "/");
+  return (
+    <Link href={href} className={`navlink ${active ? "active" : ""}`}>
+      {label}
+    </Link>
+  );
+}
 
 export default function Navbar() {
-  const pathname = usePathname();
-  const { data: session, status } = useSession();
-  const role = (session as any)?.role as string | undefined;
+  const { data } = useSession();
+  const role = (data as any)?.role as string | undefined;
 
-  // En /login lo ocultamos
-  if (pathname === "/login") return null;
-
-  const authed = status === "authenticated";
+  const canManageUsers = role === "ADMIN" || role === "OWNER";
+  const canOperate = role === "ADMIN" || role === "OWNER" || role === "STAFF";
 
   return (
-    <header className="nav">
-      <div className="nav-inner">
-        <div className="nav-left">
-          <Link href={authed ? "/dashboard" : "/"} className="brand">
-            PymePulse
-          </Link>
+    <header className="topbar">
+      <div className="topbar-inner">
+        <Link href="/dashboard" className="brand">
+          PymePulse
+        </Link>
 
-          {authed && (
-            <nav className="nav-links">
-              <Link href="/dashboard">Dashboard</Link>
-              <Link href="/products">Productos</Link>
-              <Link href="/inventory">Inventario</Link>
-              <Link href="/inventory/history">Historial</Link>
-              <Link href="/sales">Ventas</Link>
-              <Link href="/sales/new">Nueva venta</Link>
-              <Link href="/expenses">Gastos</Link>
-              <Link href="/alerts">Alertas</Link>
-              <Link href="/account">Mi cuenta</Link>
+        <nav className="nav">
+          <NavLink href="/dashboard" label="Dashboard" />
+          <NavLink href="/alerts" label="Alertas" />
 
-              {(role === "OWNER" || role === "ADMIN") && (
-                <Link href="/users">Usuarios</Link>
-              )}
-            </nav>
+          {canOperate && (
+            <>
+              <NavLink href="/products" label="Productos" />
+              <NavLink href="/sales" label="Ventas" />
+              <NavLink href="/expenses" label="Gastos" />
+            </>
           )}
-        </div>
 
-        <div className="nav-right">
-          {authed ? (
-            <button className="btn-nav" onClick={() => signOut({ callbackUrl: "/login" })}>
-              Cerrar sesión
-            </button>
-          ) : (
-            <Link className="btn-nav" href="/login">
-              Iniciar sesión
-            </Link>
-          )}
-        </div>
+          {canManageUsers && <NavLink href="/users" label="Usuarios" />}
+        </nav>
+
+        <button className="btn" onClick={() => signOut({ callbackUrl: "/login" })}>
+          Cerrar sesión
+        </button>
       </div>
     </header>
   );

@@ -1,78 +1,37 @@
-"use client";
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { prisma } from "@/lib/prisma";
+import AlertsClient from "./AlertsClient";
 
-import { useEffect, useState } from "react";
+export default async function AlertsPage() {
+  const session = await getServerSession(authOptions);
+  if (!session) redirect("/login");
 
-type Alert = {
-  id: string;
-  type: string;
-  severity: string;
-  message: string;
-  status: "OPEN" | "CLOSED";
-  createdAt: string;
-};
+  const organizationId = (session as any).organizationId as string;
 
-export default function AlertsPage() {
-  const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  async function load() {
-    setLoading(true);
-    const res = await fetch("/api/alerts");
-    const data = await res.json();
-    setAlerts(data);
-    setLoading(false);
-  }
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  async function recalc() {
-    await fetch("/api/alerts/recalculate", { method: "POST" });
-    await load();
-  }
-
-  async function closeAlert(id: string) {
-    await fetch("/api/alerts", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
-    });
-    await load();
-  }
+  const alerts = await prisma.alert.findMany({
+    where: { organizationId },
+    orderBy: { createdAt: "desc" },
+    take: 100,
+    select: {
+      id: true,
+      type: true,
+      severity: true,
+      message: true,
+      status: true,
+      createdAt: true,
+    },
+  });
 
   return (
-    <main style={{ padding: 24 }}>
-      <h1 style={{ fontSize: 26, fontWeight: 900 }}>Alertas</h1>
-      <button onClick={recalc} style={{ marginTop: 12 }}>
-        Recalcular riesgo de caja
-      </button>
+    <main className="page-card">
+      <h1 style={{ fontSize: 26, fontWeight: 1000 }}>Alertas</h1>
+      <p style={{ opacity: 0.75, marginTop: 6 }}>
+        Revisa alertas de stock bajo y ciérralas cuando estén resueltas.
+      </p>
 
-      {loading ? (
-        <p style={{ marginTop: 12 }}>Cargando…</p>
-      ) : alerts.length === 0 ? (
-        <p style={{ marginTop: 12 }}>No hay alertas.</p>
-      ) : (
-        <div style={{ marginTop: 16, display: "grid", gap: 12 }}>
-          {alerts.map((a) => (
-            <div key={a.id} style={{ border: "1px solid #ddd", borderRadius: 12, padding: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <b>{a.type}</b>
-                <span style={{ opacity: 0.8 }}>{a.status}</span>
-              </div>
-              <p style={{ marginTop: 6 }}>{a.message}</p>
-              <p style={{ marginTop: 6, fontSize: 12, opacity: 0.8 }}>
-                {new Date(a.createdAt).toLocaleString()} — Severidad: {a.severity}
-              </p>
-              {a.status === "OPEN" && (
-                <button onClick={() => closeAlert(a.id)} style={{ marginTop: 8 }}>
-                  Cerrar
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      <AlertsClient alerts={alerts} />
     </main>
   );
 }

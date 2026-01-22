@@ -6,7 +6,7 @@ import { Role } from "@prisma/client";
 
 export async function PATCH(
   _req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -17,26 +17,23 @@ export async function PATCH(
   }
 
   const organizationId = (session as any).organizationId as string;
-  const id = params?.id;
 
-  // ✅ Validación clave (evita where: { id: undefined })
-  if (!id || typeof id !== "string") {
+  // ✅ NEXT: params viene como Promise
+  const { id } = await params;
+
+  if (!id) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
 
-  // seguridad multi-tenant
-  const target = await prisma.alert.findFirst({
-    where: { id, organizationId },
-    select: { id: true, status: true },
-  });
-
-  if (!target) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-  const updated = await prisma.alert.update({
-    where: { id },
+  // ✅ updateMany: multi-tenant + no WhereUnique drama
+  const result = await prisma.alert.updateMany({
+    where: { id, organizationId, status: "OPEN" },
     data: { status: "CLOSED" },
-    select: { id: true, status: true },
   });
 
-  return NextResponse.json(updated);
+  if (result.count === 0) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({ ok: true, id, status: "CLOSED" });
 }

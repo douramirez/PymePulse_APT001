@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { z } from "zod";
 import { PaymentMethod, Role } from "@prisma/client";
-
+// import { canCreateSales } from "@/lib/permissions";
 
 const SaleCreateSchema = z.object({
   paymentMethod: z.nativeEnum(PaymentMethod).default(PaymentMethod.OTHER),
@@ -13,26 +13,53 @@ const SaleCreateSchema = z.object({
       z.object({
         productId: z.string(),
         quantity: z.coerce.number().int().positive(),
-        unitPrice: z.coerce.number().nonnegative(), // lo mandamos desde UI (salePrice)
+        unitPrice: z.coerce.number().nonnegative(),
       })
     )
     .min(1),
 });
 
+// ✅ GET /api/sales  -> historial (últimas 50)
+export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const organizationId = (session as any).organizationId as string;
+
+  const sales = await prisma.sale.findMany({
+    where: { organizationId },
+    orderBy: { dateTime: "desc" },
+    take: 50,
+    select: {
+      id: true,
+      dateTime: true,
+      paymentMethod: true,
+      total: true, // Decimal
+      createdBy: { select: { name: true, email: true } },
+      _count: { select: { items: true } },
+    },
+  });
+
+  // ✅ convertir Decimal -> number
+  const plain = sales.map((s) => ({
+    ...s,
+    total: Number(s.total),
+  }));
+
+  return NextResponse.json(plain);
+}
+
+// ✅ POST /api/sales -> crear venta (POS)
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const role = (session as any).role as Role;
 
-  // ✅ Si no tienes canCreateSales, comenta esto y usa el fallback de abajo
-  //if (typeof canCreateSales === "function" && !canCreateSales(role)) {
-    //return NextResponse.json({ error: "Forbidden" }, { status: 403 });
- // }
-  // Fallback simple si no existe canCreateSales:
-   if (!(role === "ADMIN" || role === "STAFF" || role === "OWNER")) {
-     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-   }
+  // Fallback permisos: ajusta si quieres
+  if (!(role === "ADMIN" || role === "STAFF" || role === "OWNER")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const organizationId = (session as any).organizationId as string;
   const userId = (session as any).userId as string;
@@ -40,12 +67,14 @@ export async function POST(req: Request) {
   const raw = await req.json().catch(() => null);
   const parsed = SaleCreateSchema.safeParse(raw);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Datos inválidos", details: parsed.error.format() }, { status: 400 });
+    return NextResponse.json(
+      { error: "Datos inválidos", details: parsed.error.format() },
+      { status: 400 }
+    );
   }
 
   const { paymentMethod, items } = parsed.data;
 
-  // 1) Traer productos y validar organización
   const ids = items.map((i) => i.productId);
   const products = await prisma.product.findMany({
     where: { id: { in: ids }, organizationId, isActive: true },
@@ -61,10 +90,8 @@ export async function POST(req: Request) {
     }
   }
 
-  // 2) Total
   const total = items.reduce((acc, i) => acc + i.quantity * i.unitPrice, 0);
 
-  // 3) Transacción: sale + saleItems + movimientos + update stock
   const result = await prisma.$transaction(async (tx) => {
     const sale = await tx.sale.create({
       data: {
@@ -86,8 +113,8 @@ export async function POST(req: Request) {
 
     for (const i of items) {
       const p = map.get(i.productId)!;
+      const newStock = p.stockCurrent - i.quantity;
 
-      // movimiento OUT
       await tx.inventoryMovement.create({
         data: {
           organizationId,
@@ -99,14 +126,11 @@ export async function POST(req: Request) {
         },
       });
 
-      const newStock = p.stockCurrent - i.quantity;
-
       await tx.product.update({
         where: { id: i.productId },
         data: { stockCurrent: newStock },
       });
 
-      // alerta stock bajo
       if (newStock <= p.stockMin) {
         await tx.alert.create({
           data: {
