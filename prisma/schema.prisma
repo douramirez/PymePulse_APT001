@@ -91,11 +91,14 @@ model Sale {
   dateTime      DateTime      @default(now())
   paymentMethod PaymentMethod @default(OTHER)
   total         Decimal       @default(0)
+  receiptNumber Int?
 
   createdByUserId String
   createdBy       User   @relation("SalesCreatedBy", fields: [createdByUserId], references: [id])
 
   items SaleItem[]
+
+  @@unique([organizationId, receiptNumber])
 }
 
 model SaleItem {

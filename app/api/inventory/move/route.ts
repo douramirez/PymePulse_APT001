@@ -33,38 +33,63 @@ export async function POST(req: Request) {
 
   const { productId, type, quantity, reason } = parsed.data;
 
-  const product = await prisma.product.findFirst({
-    where: { id: productId, organizationId },
+  const result = await prisma.$transaction(async (tx) => {
+    const exists = await tx.product.findFirst({
+      where: { id: productId, organizationId, isActive: true },
+      select: { id: true },
+    });
+
+    if (!exists) {
+      return { error: "Producto no encontrado", status: 404 as const };
+    }
+
+    if (type === "OUT") {
+      const updated = await tx.product.updateMany({
+        where: {
+          id: productId,
+          organizationId,
+          isActive: true,
+          stockCurrent: { gte: quantity },
+        },
+        data: { stockCurrent: { decrement: quantity } },
+      });
+
+      if (updated.count === 0) {
+        return { error: "Stock insuficiente", status: 400 as const };
+      }
+    } else if (type === "IN") {
+      await tx.product.updateMany({
+        where: { id: productId, organizationId, isActive: true },
+        data: { stockCurrent: { increment: quantity } },
+      });
+    } else {
+      await tx.product.updateMany({
+        where: { id: productId, organizationId, isActive: true },
+        data: { stockCurrent: quantity },
+      });
+    }
+
+    await tx.inventoryMovement.create({
+      data: {
+        organizationId,
+        productId,
+        type,
+        quantity,
+        reason,
+        createdByUserId: userId,
+      },
+    });
+
+    const updatedProduct = await tx.product.findUnique({
+      where: { id: productId },
+    });
+
+    return { product: updatedProduct };
   });
 
-  if (!product) {
-    return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 });
+  if (result.error) {
+    return NextResponse.json({ error: result.error }, { status: result.status });
   }
 
-  let next = product.stockCurrent;
-  if (type === "IN") next += quantity;
-  if (type === "OUT") next -= quantity;
-  if (type === "ADJUST") next = quantity;
-
-  if (next < 0) {
-    return NextResponse.json({ error: "Stock negativo" }, { status: 400 });
-  }
-
-  await prisma.inventoryMovement.create({
-    data: {
-      organizationId,
-      productId,
-      type,
-      quantity,
-      reason,
-      createdByUserId: userId,
-    },
-  });
-
-  const updated = await prisma.product.update({
-    where: { id: productId },
-    data: { stockCurrent: next },
-  });
-
-  return NextResponse.json(updated);
+  return NextResponse.json(result.product);
 }

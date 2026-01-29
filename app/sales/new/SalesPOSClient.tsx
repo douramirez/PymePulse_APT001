@@ -26,6 +26,9 @@ export default function SalesPOSClient({ products }: { products: Product[] }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "TRANSFER" | "OTHER">("OTHER");
   const [msg, setMsg] = useState<string | null>(null);
+  const [msgKind, setMsgKind] = useState<"info" | "error" | "success">("info");
+  const [lastSaleId, setLastSaleId] = useState<string | null>(null);
+  const [lastReceipt, setLastReceipt] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
   const scanRef = useRef<HTMLInputElement>(null);
@@ -86,6 +89,7 @@ export default function SalesPOSClient({ products }: { products: Product[] }) {
 
     const p = productBySku.get(code);
     if (!p) {
+      setMsgKind("error");
       setMsg("No encontrado: revisa el SKU/EAN.");
       setScan("");
       return;
@@ -93,17 +97,21 @@ export default function SalesPOSClient({ products }: { products: Product[] }) {
 
     addToCart(p, 1);
     setScan("");
+    setMsgKind("info");
     setMsg(`Agregado: ${p.name}`);
   }
 
   async function confirmSale() {
     setMsg(null);
     if (cart.length === 0) {
+      setMsgKind("error");
       setMsg("Carrito vacío.");
       return;
     }
 
     setLoading(true);
+    setLastSaleId(null);
+    setLastReceipt(null);
     const res = await fetch("/api/sales", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -121,6 +129,7 @@ export default function SalesPOSClient({ products }: { products: Product[] }) {
 
     if (!res.ok) {
       const d = await res.json().catch(() => ({}));
+      setMsgKind("error");
       setMsg(d?.error ?? "Error creando venta");
       return;
     }
@@ -129,7 +138,10 @@ export default function SalesPOSClient({ products }: { products: Product[] }) {
     setCart([]);
     setScan("");
     setQuery("");
+    setMsgKind("success");
     setMsg(`✅ Venta creada (${d.saleId}). Stock actualizado.`);
+    setLastSaleId(d.saleId ?? null);
+    setLastReceipt(d.receiptNumber ?? null);
     scanRef.current?.focus();
   }
 
@@ -210,7 +222,11 @@ export default function SalesPOSClient({ products }: { products: Product[] }) {
           ))}
         </div>
 
-        {msg && <p style={{ marginTop: 6, fontWeight: 800 }}>{msg}</p>}
+        {msg && (
+          <p style={{ marginTop: 6, fontWeight: 800, color: msgKind === "error" ? "crimson" : "inherit" }}>
+            {msg}
+          </p>
+        )}
       </section>
 
       {/* Right: carrito */}
@@ -279,6 +295,26 @@ export default function SalesPOSClient({ products }: { products: Product[] }) {
           >
             {loading ? "Procesando..." : "Confirmar venta"}
           </button>
+
+          {msg && (
+            <p
+              style={{
+                marginTop: 10,
+                fontWeight: 800,
+                color: msgKind === "error" ? "crimson" : msgKind === "success" ? "green" : "inherit",
+              }}
+            >
+              {msg}
+            </p>
+          )}
+
+          {lastSaleId && (
+            <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
+              <a className="btn" href={`/sales/${lastSaleId}/receipt`} target="_blank" rel="noreferrer">
+                Imprimir boleta{lastReceipt ? ` #${lastReceipt}` : ""}
+              </a>
+            </div>
+          )}
         </div>
       </aside>
     </div>

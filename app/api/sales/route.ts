@@ -78,73 +78,124 @@ export async function POST(req: Request) {
   const ids = items.map((i) => i.productId);
   const products = await prisma.product.findMany({
     where: { id: { in: ids }, organizationId, isActive: true },
-    select: { id: true, name: true, stockCurrent: true, stockMin: true },
+    select: { id: true, name: true, stockCurrent: true, stockMin: true, salePrice: true },
   });
 
   const map = new Map(products.map((p) => [p.id, p]));
-  for (const i of items) {
+  const itemsWithPrice = items.map((i) => {
     const p = map.get(i.productId);
-    if (!p) return NextResponse.json({ error: "Producto inválido" }, { status: 400 });
-    if (p.stockCurrent - i.quantity < 0) {
-      return NextResponse.json({ error: `Stock insuficiente: ${p.name}` }, { status: 400 });
-    }
+    if (!p) return null;
+    return {
+      ...i,
+      unitPrice: Number(p.salePrice),
+      name: p.name,
+      stockMin: p.stockMin,
+    };
+  });
+
+  if (itemsWithPrice.some((i) => !i)) {
+    return NextResponse.json({ error: "Producto inválido" }, { status: 400 });
   }
 
-  const total = items.reduce((acc, i) => acc + i.quantity * i.unitPrice, 0);
+  const total = itemsWithPrice.reduce((acc, i) => acc + i!.quantity * i!.unitPrice, 0);
 
-  const result = await prisma.$transaction(async (tx) => {
-    const sale = await tx.sale.create({
-      data: {
-        organizationId,
-        paymentMethod,
-        total: total as any,
-        createdByUserId: userId,
-        items: {
-          create: items.map((i) => ({
-            productId: i.productId,
-            quantity: i.quantity,
-            unitPrice: i.unitPrice as any,
-            lineTotal: (i.quantity * i.unitPrice) as any,
-          })),
+  let result: { id: string; receiptNumber: number | null };
+  try {
+    let attempts = 0;
+    while (true) {
+      attempts += 1;
+      try {
+        result = await prisma.$transaction(async (tx) => {
+          const last = await tx.sale.findFirst({
+            where: { organizationId, receiptNumber: { not: null } },
+            orderBy: { receiptNumber: "desc" },
+            select: { receiptNumber: true },
+          });
+
+          const nextReceipt = (last?.receiptNumber ?? 0) + 1;
+
+          const sale = await tx.sale.create({
+            data: {
+              organizationId,
+              paymentMethod,
+              total: total as any,
+              createdByUserId: userId,
+              receiptNumber: nextReceipt,
+              items: {
+                create: itemsWithPrice.map((i) => ({
+                  productId: i!.productId,
+                  quantity: i!.quantity,
+                  unitPrice: i!.unitPrice as any,
+                  lineTotal: (i!.quantity * i!.unitPrice) as any,
+                })),
+              },
+            },
+            select: { id: true, receiptNumber: true },
+          });
+
+    for (const i of itemsWithPrice) {
+      const p = map.get(i!.productId)!;
+      const updated = await tx.product.updateMany({
+        where: {
+          id: i!.productId,
+          organizationId,
+          isActive: true,
+          stockCurrent: { gte: i!.quantity },
         },
-      },
-      select: { id: true },
-    });
+        data: { stockCurrent: { decrement: i!.quantity } },
+      });
 
-    for (const i of items) {
-      const p = map.get(i.productId)!;
-      const newStock = p.stockCurrent - i.quantity;
+      if (updated.count === 0) {
+        throw new Error(`Stock insuficiente: ${p.name}`);
+      }
+
+      const fresh = await tx.product.findUnique({
+        where: { id: i!.productId },
+        select: { stockCurrent: true, stockMin: true, name: true },
+      });
 
       await tx.inventoryMovement.create({
         data: {
           organizationId,
-          productId: i.productId,
+          productId: i!.productId,
           type: "OUT",
-          quantity: i.quantity,
+          quantity: i!.quantity,
           reason: `Venta ${sale.id}`,
           createdByUserId: userId,
         },
       });
 
-      await tx.product.update({
-        where: { id: i.productId },
-        data: { stockCurrent: newStock },
-      });
-
-      if (newStock <= p.stockMin) {
+      if (fresh && fresh.stockCurrent <= fresh.stockMin) {
         await tx.alert.create({
           data: {
             organizationId,
             type: "LOW_STOCK",
             severity: "MEDIA",
-            message: `Stock bajo: ${p.name} (${newStock})`,
+            message: `Stock bajo: ${fresh.name} (${fresh.stockCurrent})`,
           },
         });
       }
     }
 
-    return sale;
-  });
+          return sale;
+        }, { maxWait: 5000, timeout: 15000 });
+        break;
+      } catch (err: any) {
+        if (err?.code === "P2002" && attempts < 3) {
+          continue;
+        }
+        throw err;
+      }
+    }
+  } catch (e: any) {
+    if (e instanceof Error && e.message.startsWith("Stock insuficiente")) {
+      return NextResponse.json({ error: e.message }, { status: 400 });
+    }
+    throw e;
+  }
 
-  return NextResponse.json({ ok: true, saleId: result.id }, { status: 201 });
+  return NextResponse.json(
+    { ok: true, saleId: result.id, receiptNumber: result.receiptNumber },
+    { status: 201 }
+  );
 }

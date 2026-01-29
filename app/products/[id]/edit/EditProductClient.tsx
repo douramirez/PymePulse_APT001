@@ -3,16 +3,30 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export default function NewProductPage() {
+type Product = {
+  id: string;
+  name: string;
+  sku: string | null;
+  imageUrl: string | null;
+  unit: string | null;
+  salePrice: number;
+  costPrice: number;
+  stockMin: number;
+  stockCurrent: number;
+  isActive: boolean;
+};
+
+export default function EditProductClient({ product }: { product: Product }) {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [sku, setSku] = useState(""); // barcode
-  const [imageUrl, setImageUrl] = useState("");
-  const [unit, setUnit] = useState("unidad");
-  const [costPrice, setCostPrice] = useState(0);
-  const [salePrice, setSalePrice] = useState(0);
-  const [stockMin, setStockMin] = useState(0);
-  const [stockCurrent, setStockCurrent] = useState(0);
+  const [name, setName] = useState(product.name);
+  const [sku, setSku] = useState(product.sku ?? "");
+  const [imageUrl, setImageUrl] = useState(product.imageUrl ?? "");
+  const [unit, setUnit] = useState(product.unit ?? "unidad");
+  const [costPrice, setCostPrice] = useState(product.costPrice);
+  const [salePrice, setSalePrice] = useState(product.salePrice);
+  const [stockMin, setStockMin] = useState(product.stockMin);
+  const [stockCurrent, setStockCurrent] = useState(product.stockCurrent);
+  const [isActive, setIsActive] = useState(product.isActive);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -21,18 +35,19 @@ export default function NewProductPage() {
     setError(null);
     setLoading(true);
 
-    const res = await fetch("/api/products", {
-      method: "POST",
+    const res = await fetch(`/api/products/${product.id}`, {
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name,
         sku: sku.trim() || null,
         imageUrl: imageUrl.trim() || null,
-        unit,
+        unit: unit.trim() || null,
         costPrice,
         salePrice,
         stockMin,
         stockCurrent,
+        isActive,
       }),
     });
 
@@ -40,7 +55,7 @@ export default function NewProductPage() {
 
     if (!res.ok) {
       const d = await res.json().catch(() => ({}));
-      setError(d?.error ?? "Error creando producto");
+      setError(d?.error ?? "Error actualizando producto");
       return;
     }
 
@@ -49,36 +64,28 @@ export default function NewProductPage() {
 
   return (
     <main className="page-card" style={{ maxWidth: 720 }}>
-      <h1 style={{ fontSize: 26, fontWeight: 900 }}>Nuevo producto</h1>
+      <h1 style={{ fontSize: 26, fontWeight: 900 }}>Editar producto</h1>
 
       <form onSubmit={onSubmit} style={{ marginTop: 16, display: "grid", gap: 12 }}>
         <div className="form-grid">
           <label className="field">
             <span>Nombre</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Bebida 1.5L" />
+            <input value={name} onChange={(e) => setName(e.target.value)} />
           </label>
 
           <label className="field">
             <span>Código de barras (SKU/EAN)</span>
-            <input
-              value={sku}
-              onChange={(e) => setSku(e.target.value)}
-              placeholder="Ej: 7801234567890"
-            />
+            <input value={sku} onChange={(e) => setSku(e.target.value)} />
           </label>
 
           <label className="field">
             <span>Imagen (URL)</span>
-            <input
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://..."
-            />
+            <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
           </label>
 
           <label className="field">
             <span>Unidad</span>
-            <input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="unidad/kg/lt" />
+            <input value={unit} onChange={(e) => setUnit(e.target.value)} />
           </label>
 
           <label className="field">
@@ -97,12 +104,16 @@ export default function NewProductPage() {
           </label>
 
           <label className="field">
-            <span>Stock inicial</span>
-            <input
-              type="number"
-              value={stockCurrent}
-              onChange={(e) => setStockCurrent(Number(e.target.value))}
-            />
+            <span>Stock actual</span>
+            <input type="number" value={stockCurrent} onChange={(e) => setStockCurrent(Number(e.target.value))} />
+          </label>
+
+          <label className="field">
+            <span>Activo</span>
+            <select value={isActive ? "yes" : "no"} onChange={(e) => setIsActive(e.target.value === "yes")}>
+              <option value="yes">Sí</option>
+              <option value="no">No</option>
+            </select>
           </label>
         </div>
 
@@ -115,7 +126,7 @@ export default function NewProductPage() {
         )}
 
         <button className="btn primary" disabled={loading} type="submit">
-          {loading ? "Guardando..." : "Crear producto"}
+          {loading ? "Guardando..." : "Guardar cambios"}
         </button>
 
         {error && <p style={{ color: "crimson" }}>{error}</p>}

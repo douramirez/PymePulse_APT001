@@ -30,45 +30,63 @@ export default function LoginPage() {
   }
 
   return (
-    <main style={{ maxWidth: 420, margin: "40px auto", padding: 16 }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700 }}>PymePulse</h1>
-      <p style={{ marginTop: 6 }}>Inicia sesión</p>
+    <main className="auth">
+      <div className="auth-card">
+        <div className="auth-left">
+          <div className="auth-badge">PymePulse</div>
+          <h1 className="auth-title">Tu negocio ordenado en minutos</h1>
+          <p className="auth-sub">
+            Accede al panel y controla inventario, ventas y gastos con alertas inteligentes.
+          </p>
 
-      <form onSubmit={onSubmit} style={{ marginTop: 16, display: "grid", gap: 12 }}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={{ padding: 10, border: "1px solid #ccc", borderRadius: 8 }}
-        />
-        <input
-          type="password"
-          placeholder="Contraseña"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={{ padding: 10, border: "1px solid #ccc", borderRadius: 8 }}
-        />
+          <div className="auth-points">
+            <div className="auth-point">✔︎ Stock bajo y caja controlada</div>
+            <div className="auth-point">✔︎ Ventas rápidas y trazables</div>
+            <div className="auth-point">✔︎ Roles para tu equipo</div>
+          </div>
 
-        <button
-          disabled={loading}
-          type="submit"
-          style={{
-            padding: 10,
-            borderRadius: 8,
-            border: "1px solid #000",
-            cursor: "pointer",
-            fontWeight: 600,
-          }}
-        >
-          {loading ? "Entrando..." : "Entrar"}
-        </button>
+          <div className="auth-glow" />
+        </div>
 
-        {error && <p style={{ color: "crimson" }}>{error}</p>}
-      </form>
-      <p style={{ fontSize: 13, opacity: 0.8 }}>
-          ¿No tienes cuenta? <Link href="/register">Regístrate</Link>
-        </p>
+        <div className="auth-right">
+          <div className="auth-head">
+            <div className="auth-logo">PymePulse</div>
+            <div className="auth-kicker">Inicia sesión</div>
+          </div>
+
+          <form onSubmit={onSubmit} className="auth-form">
+            <label className="auth-field">
+              <span>Email</span>
+              <input
+                type="email"
+                placeholder="tu@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </label>
+
+            <label className="auth-field">
+              <span>Contraseña</span>
+              <input
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </label>
+
+            <button disabled={loading} type="submit" className="auth-submit">
+              {loading ? "Entrando..." : "Entrar"}
+            </button>
+
+            {error && <p className="auth-error">{error}</p>}
+          </form>
+
+          <p className="auth-footer">
+            ¿No tienes cuenta? <Link href="/register">Regístrate</Link>
+          </p>
+        </div>
+      </div>
     </main>
   );
 }

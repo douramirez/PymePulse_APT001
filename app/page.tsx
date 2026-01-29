@@ -9,36 +9,65 @@ export default async function HomePage() {
 
   return (
     <main className="landing">
+      <header className="landing-nav">
+        <div className="landing-nav-inner">
+          <div className="brand2">PymePulse</div>
+          <nav className="landing-links">
+            <a href="#quienes">Quiénes somos</a>
+            <a href="#productos">Nuestros productos</a>
+            <a href="#beneficios">Beneficios</a>
+            <a href="#demo">Demo</a>
+          </nav>
+          <div className="landing-actions">
+            <Link className="btn ghost" href="/login">Ingresar</Link>
+            <Link className="btn primary" href="/register">Crear cuenta</Link>
+          </div>
+        </div>
+      </header>
+
       {/* HERO */}
       <section className="hero2">
         <div className="hero2-inner">
           <div className="hero2-left">
-            <div className="badge2">PymePulse • Capstone</div>
+            <div className="badge2 reveal">PymePulse • Capstone</div>
 
-            <h1 className="hero2-title">
-              Gestiona tu <span>PYME</span> como un SaaS moderno
+            <h1 className="hero2-title reveal delay-1">
+              Ordena tu <span>PYME</span> y vende con control diario
             </h1>
 
-            <p className="hero2-sub">
-              Inventario, ventas y gastos en un solo lugar. Alertas automáticas de stock y control de caja
-              con un dashboard claro, rápido y seguro (RBAC).
+            <p className="hero2-sub reveal delay-2">
+              Inventario, ventas y gastos en un solo lugar. Alertas automáticas, caja clara y
+              trazabilidad por usuario con un dashboard rápido y seguro (RBAC).
             </p>
 
-            <div className="hero2-cta">
-              <Link className="btn primary" href="/login">Iniciar sesión</Link>
-              <Link className="btn ghost" href="/register">Registrar Pyme</Link>
+            <ul className="hero2-list reveal delay-3">
+              <li>Alertas de stock y caja para decidir a tiempo.</li>
+              <li>Ventas, gastos y márgenes en minutos, sin planillas.</li>
+              <li>Roles y permisos para equipos pequeños.</li>
+            </ul>
+
+            <div className="hero2-cta reveal delay-4">
+              <Link className="btn primary" href="/register">Crear mi Pyme</Link>
               <a className="btn ghost" href="#demo">Ver demo</a>
+              <Link className="btn ghost" href="/login">Ya tengo cuenta</Link>
             </div>
 
-            <div className="trust">
-              <div className="trust-item">
-                <div className="trust-top">Neon + Prisma</div>
-                <div className="trust-bottom">PostgreSQL en la nube</div>
+            <div className="hero2-proof reveal delay-5">
+              <div className="proof">
+                <div className="proof-value">15 min</div>
+                <div className="proof-label">Setup inicial</div>
               </div>
-              <div className="trust-item">
-                <div className="trust-top">Next.js</div>
-                <div className="trust-bottom">Rápido y escalable</div>
+              <div className="proof">
+                <div className="proof-value">24/7</div>
+                <div className="proof-label">Alertas activas</div>
               </div>
+              <div className="proof">
+                <div className="proof-value">1 panel</div>
+                <div className="proof-label">Visión completa</div>
+              </div>
+            </div>
+
+            <div className="trust reveal delay-6">
               <div className="trust-item">
                 <div className="trust-top">RBAC</div>
                 <div className="trust-bottom">Roles y permisos</div>
@@ -48,7 +77,7 @@ export default async function HomePage() {
 
           {/* MOCKUP */}
           <div className="hero2-right" id="demo">
-            <div className="mock">
+            <div className="mock reveal delay-2">
               <div className="mock-top">
                 <div className="dot red" />
                 <div className="dot yellow" />
@@ -135,6 +164,64 @@ export default async function HomePage() {
         <div className="glow g2" />
       </section>
 
+      {/* ABOUT */}
+      <section className="section2" id="quienes">
+        <div className="section2-head">
+          <h2 className="h2">Quiénes somos</h2>
+          <p className="muted">Un equipo enfocado en simplificar la gestión diaria de PYMES.</p>
+        </div>
+        <div className="about-grid">
+          <div className="about-card">
+            <div className="about-title">Misión</div>
+            <div className="about-text">
+              Dar visibilidad clara del negocio en un solo panel para tomar mejores decisiones.
+            </div>
+          </div>
+          <div className="about-card">
+            <div className="about-title">Visión</div>
+            <div className="about-text">
+              Que cualquier pyme pueda operar con herramientas modernas sin pagar software complejo.
+            </div>
+          </div>
+          <div className="about-card">
+            <div className="about-title">Valores</div>
+            <div className="about-text">
+              Claridad, rapidez y control para que vendas más y pierdas menos tiempo.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* PRODUCTS */}
+      <section className="section2" id="productos">
+        <div className="section2-head">
+          <h2 className="h2">Nuestros productos</h2>
+          <p className="muted">Módulos pensados para tu operación diaria.</p>
+        </div>
+        <div className="product-cards">
+          <div className="p-card">
+            <div className="p-title">Inventario</div>
+            <div className="p-text">SKU, stock mínimo, alertas y trazabilidad.</div>
+            <div className="p-pill">Control total</div>
+          </div>
+          <div className="p-card">
+            <div className="p-title">Ventas</div>
+            <div className="p-text">POS rápido, boletas y top vendidos.</div>
+            <div className="p-pill">Flujo ágil</div>
+          </div>
+          <div className="p-card">
+            <div className="p-title">Gastos</div>
+            <div className="p-text">Registro simple para comparar margen y caja.</div>
+            <div className="p-pill">Caja clara</div>
+          </div>
+          <div className="p-card">
+            <div className="p-title">Alertas</div>
+            <div className="p-text">Stock bajo y riesgo de caja en tiempo real.</div>
+            <div className="p-pill">Decisiones rápidas</div>
+          </div>
+        </div>
+      </section>
+
       {/* HOW IT WORKS */}
       <section className="section2">
         <div className="section2-head">
@@ -198,7 +285,7 @@ export default async function HomePage() {
       </section>
 
       {/* BENEFITS */}
-      <section className="section2">
+      <section className="section2" id="beneficios">
         <div className="section2-head">
           <h2 className="h2">Qué gana la Pyme</h2>
           <p className="muted">Beneficios concretos que puedes “vender” en la defensa.</p>

@@ -19,7 +19,7 @@ export default async function InventoryPage() {
     <main style={{ padding: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1 style={{ fontSize: 26, fontWeight: 800 }}>Inventario</h1>
-        <Link href="/products/new" style={{ border: "1px solid #000", padding: "8px 12px", borderRadius: 8 }}>
+        <Link href="/products/news" style={{ border: "1px solid #000", padding: "8px 12px", borderRadius: 8 }}>
           + Producto
         </Link>
       </div>

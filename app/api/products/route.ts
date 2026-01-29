@@ -15,6 +15,7 @@ const ProductCreateSchema = z.object({
   salePrice: z.coerce.number().nonnegative().default(0),
   costPrice: z.coerce.number().nonnegative().default(0),
   stockMin: z.coerce.number().int().nonnegative().default(0),
+  stockCurrent: z.coerce.number().int().nonnegative().default(0),
 });
 
 export async function GET() {
@@ -52,7 +53,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const { name, sku, imageUrl, salePrice, costPrice, stockMin } = parsed.data;
+  const { name, sku, imageUrl, salePrice, costPrice, stockMin, stockCurrent } = parsed.data;
 
   const created = await prisma.product.create({
     data: {
@@ -63,7 +64,7 @@ export async function POST(req: Request) {
       salePrice: salePrice as any,
       costPrice: costPrice as any,
       stockMin,
-      stockCurrent: 0,
+      stockCurrent,
     },
   });
 
