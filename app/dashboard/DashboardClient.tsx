@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import {
   ResponsiveContainer,
   AreaChart, Area, XAxis, YAxis, Tooltip,
@@ -16,15 +15,6 @@ type Sale = {
   createdBy?: { name: string | null; email: string | null } | null;
 };
 
-type Expense = {
-  id: string;
-  date: string | Date;
-  amount: number;
-  description?: string | null;
-  category?: { name: string } | null;
-  createdBy?: { name: string | null; email: string | null } | null;
-};
-
 type Alert = {
   id: string;
   type: string;
@@ -34,8 +24,17 @@ type Alert = {
   createdAt: string | Date;
 };
 
-type TopItem = { productId: string; quantity: number };
-type Product = { id: string; name: string; sku: string | null; imageUrl: string | null };
+type DailyMetric = { day: string; sales: number; profit: number };
+
+type Category = { id: string; name: string };
+
+type TopRow = {
+  productId: string;
+  name: string;
+  qty: number;
+  sales: number;
+  profit: number;
+};
 
 function daysAgo(n: number) {
   const d = new Date();
@@ -44,253 +43,186 @@ function daysAgo(n: number) {
   return d;
 }
 
-function fmtDay(d: Date) {
+function fmtDay(iso: string) {
+  const d = new Date(iso);
   return d.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit" });
 }
 
 export default function DashboardClient({
   sales,
-  expenses,
   alerts,
-  topItems,
-  topProducts,
+  dailyMetrics,
+  categories,
+  initialTopRange,
 }: {
   sales: Sale[];
-  expenses: Expense[];
   alerts: Alert[];
-  topItems: TopItem[];
-  topProducts: Product[];
+  dailyMetrics: DailyMetric[];
+  categories: Category[];
+  initialTopRange: 7 | 30 | 90;
 }) {
   const [range, setRange] = useState<7 | 30 | 90>(30);
 
-  const from = useMemo(() => daysAgo(range), [range]);
+  // Top filters
+  const [topRange, setTopRange] = useState<7 | 30 | 90>(initialTopRange);
+  const [categoryId, setCategoryId] = useState<string>("ALL");
+  const [metric, setMetric] = useState<"PROFIT" | "SALES" | "QTY">("PROFIT");
 
-  const filteredSales = useMemo(
-    () => sales.filter(s => new Date(s.dateTime) >= from),
-    [sales, from]
-  );
+  const [topRows, setTopRows] = useState<TopRow[]>([]);
+  const [loadingTop, setLoadingTop] = useState(false);
 
-  const filteredExpenses = useMemo(
-    () => expenses.filter(e => new Date(e.date) >= from),
-    [expenses, from]
-  );
+  const from = daysAgo(range);
+
+  const metrics = useMemo(() => {
+    return dailyMetrics.filter(m => new Date(m.day) >= from);
+  }, [dailyMetrics, from]);
 
   const kpis = useMemo(() => {
-    const salesTotal = filteredSales.reduce((a, s) => a + s.total, 0);
-    const expensesTotal = filteredExpenses.reduce((a, e) => a + e.amount, 0);
-    const profit = salesTotal - expensesTotal;
+    const salesTotal = metrics.reduce((a, m) => a + m.sales, 0);
+    const profitTotal = metrics.reduce((a, m) => a + m.profit, 0);
+    const margin = salesTotal > 0 ? (profitTotal / salesTotal) * 100 : 0;
+    return { salesTotal, profitTotal, margin };
+  }, [metrics]);
 
-    // Ticket promedio (si hay ventas)
-    const avgTicket = filteredSales.length ? salesTotal / filteredSales.length : 0;
+  const avgTicket = useMemo(() => {
+    const filtered = sales.filter(s => new Date(s.dateTime) >= from);
+    return filtered.length ? kpis.salesTotal / filtered.length : 0;
+  }, [sales, from, kpis.salesTotal]);
 
-    return { salesTotal, expensesTotal, profit, avgTicket };
-  }, [filteredSales, filteredExpenses]);
-
-  // Serie diaria (ventas vs gastos)
-  const series = useMemo(() => {
-    const map = new Map<string, { day: string; sales: number; expenses: number }>();
-
-    for (let i = range - 1; i >= 0; i--) {
-      const d = daysAgo(i);
-      const key = d.toISOString().slice(0, 10);
-      map.set(key, { day: fmtDay(d), sales: 0, expenses: 0 });
+  async function loadTop() {
+    setLoadingTop(true);
+    try {
+      const qs = new URLSearchParams({
+        range: String(topRange),
+        metric,
+        categoryId,
+      });
+      const res = await fetch(`/api/dashboard/top-products?${qs.toString()}`);
+      const data = await res.json();
+      setTopRows(Array.isArray(data?.rows) ? data.rows : []);
+    } finally {
+      setLoadingTop(false);
     }
+  }
 
-    filteredSales.forEach(s => {
-      const d = new Date(s.dateTime);
-      const key = d.toISOString().slice(0, 10);
-      const row = map.get(key);
-      if (row) row.sales += s.total;
-    });
+  useEffect(() => {
+    loadTop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [topRange, metric, categoryId]);
 
-    filteredExpenses.forEach(e => {
-      const d = new Date(e.date);
-      const key = d.toISOString().slice(0, 10);
-      const row = map.get(key);
-      if (row) row.expenses += e.amount;
-    });
-
-    return Array.from(map.values());
-  }, [filteredSales, filteredExpenses, range]);
-
-  // Top vendidos (filtra con lo que venga en topItems 90d; para demo sirve)
-  const topMap = useMemo(() => new Map(topProducts.map(p => [p.id, p])), [topProducts]);
-  const topList = useMemo(() => {
-    return topItems
-      .slice(0, 6)
-      .map(t => ({ ...t, product: topMap.get(t.productId) }))
-      .filter(x => x.product);
-  }, [topItems, topMap]);
-
-  // Actividad reciente (mezcla ventas/gastos)
-  const activity = useMemo(() => {
-    const salesAct = filteredSales.slice(0, 6).map(s => ({
-      type: "VENTA" as const,
-      at: new Date(s.dateTime),
-      title: `Venta (${s.paymentMethod})`,
-      amount: s.total,
-      meta: s.createdBy?.name ?? s.createdBy?.email ?? "—",
-      href: `/sales/${s.id}`,
-    }));
-
-    const expAct = filteredExpenses.slice(0, 6).map(e => ({
-      type: "GASTO" as const,
-      at: new Date(e.date),
-      title: `Gasto (${e.category?.name ?? "Sin categoría"})`,
-      amount: e.amount,
-      meta: e.createdBy?.name ?? e.createdBy?.email ?? "—",
-      href: `/expenses`,
-    }));
-
-    return [...salesAct, ...expAct]
-      .sort((a, b) => b.at.getTime() - a.at.getTime())
-      .slice(0, 8);
-  }, [filteredSales, filteredExpenses]);
+  const topValueKey = metric === "QTY" ? "qty" : metric === "SALES" ? "sales" : "profit";
+  const topTitle = metric === "QTY" ? "Unidades" : metric === "SALES" ? "Ventas" : "Ganancia";
 
   return (
     <>
-      {/* Selector */}
+      {/* Selector principal */}
       <div className="dash-toolbar">
         <div className="segmented">
-          <button className={`seg ${range === 7 ? "on" : ""}`} onClick={() => setRange(7)}>7d</button>
-          <button className={`seg ${range === 30 ? "on" : ""}`} onClick={() => setRange(30)}>30d</button>
-          <button className={`seg ${range === 90 ? "on" : ""}`} onClick={() => setRange(90)}>90d</button>
+          {[7, 30, 90].map(r => (
+            <button
+              key={r}
+              className={`seg ${range === r ? "on" : ""}`}
+              onClick={() => setRange(r as any)}
+            >
+              {r}d
+            </button>
+          ))}
         </div>
 
         <div className="mini-kpi">
           <span className="muted">Ticket prom.</span>
-          <span className="strong">${Math.round(kpis.avgTicket).toLocaleString("es-CL")}</span>
+          <span className="strong">${Math.round(avgTicket).toLocaleString("es-CL")}</span>
         </div>
       </div>
 
       {/* KPIs */}
       <div className="dash-grid-pro">
         <div className="card kpi-card">
-          <div className="kpi-label">Ventas ({range}d)</div>
+          <div className="kpi-label">Ventas</div>
           <div className="kpi-val">${Math.round(kpis.salesTotal).toLocaleString("es-CL")}</div>
-          <div className="kpi-sub muted">{filteredSales.length} ventas</div>
         </div>
 
         <div className="card kpi-card">
-          <div className="kpi-label">Gastos ({range}d)</div>
-          <div className="kpi-val">${Math.round(kpis.expensesTotal).toLocaleString("es-CL")}</div>
-          <div className="kpi-sub muted">{filteredExpenses.length} gastos</div>
+          <div className="kpi-label">Ganancia</div>
+          <div className="kpi-val">${Math.round(kpis.profitTotal).toLocaleString("es-CL")}</div>
         </div>
 
         <div className="card kpi-card">
-          <div className="kpi-label">Utilidad</div>
-          <div className={`kpi-val ${kpis.profit < 0 ? "neg" : "pos"}`}>
-            {kpis.profit < 0 ? "-" : ""}${Math.abs(Math.round(kpis.profit)).toLocaleString("es-CL")}
-          </div>
-          <div className="kpi-sub muted">(Ventas - Gastos)</div>
+          <div className="kpi-label">Margen</div>
+          <div className="kpi-val">{kpis.margin.toFixed(1)}%</div>
         </div>
 
         <div className="card kpi-card">
-          <div className="kpi-label">Alertas abiertas</div>
+          <div className="kpi-label">Alertas</div>
           <div className="kpi-val">{alerts.length}</div>
-          <div className="kpi-sub muted">Stock / Caja</div>
         </div>
       </div>
 
       {/* Charts */}
       <div className="dash-panels-pro">
         <section className="card panel">
-          <div className="panel-head">
-            <div>
-              <div className="panel-title">Tendencia ventas vs gastos</div>
-              <div className="muted">Serie diaria ({range} días)</div>
-            </div>
-          </div>
-
-          <div style={{ width: "100%", height: 260 }}>
-            <ResponsiveContainer>
-              <AreaChart data={series}>
-                <XAxis dataKey="day" tickMargin={8} />
-                <YAxis tickMargin={8} />
-                <Tooltip />
-                <Area type="monotone" dataKey="sales" fillOpacity={0.18} />
-                <Area type="monotone" dataKey="expenses" fillOpacity={0.18} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          <div className="panel-title">Ventas vs Ganancia</div>
+          <ResponsiveContainer height={260}>
+            <AreaChart data={metrics}>
+              <XAxis dataKey="day" tickFormatter={fmtDay} />
+              <YAxis />
+              <Tooltip />
+              <Area dataKey="sales" fillOpacity={0.2} />
+              <Area dataKey="profit" fillOpacity={0.2} />
+            </AreaChart>
+          </ResponsiveContainer>
         </section>
 
         <section className="card panel">
-          <div className="panel-head">
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
             <div>
-              <div className="panel-title">Top productos vendidos</div>
-              <div className="muted">Ranking (90d base)</div>
+              <div className="panel-title">Top productos por {topTitle.toLowerCase()}</div>
+              <div className="muted">Filtra por categoría</div>
             </div>
-            <Link className="btn" href="/products">Ver productos</Link>
+
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <select value={topRange} onChange={(e) => setTopRange(Number(e.target.value) as any)} className="btn">
+                <option value={7}>7d</option>
+                <option value={30}>30d</option>
+                <option value={90}>90d</option>
+              </select>
+
+              <select value={metric} onChange={(e) => setMetric(e.target.value as any)} className="btn">
+                <option value="PROFIT">Ganancia</option>
+                <option value="SALES">Ventas</option>
+                <option value="QTY">Unidades</option>
+              </select>
+
+              <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="btn">
+                <option value="ALL">Todas</option>
+                {categories.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          <div style={{ width: "100%", height: 260 }}>
+          <div style={{ width: "100%", height: 260, marginTop: 8, opacity: loadingTop ? 0.6 : 1 }}>
             <ResponsiveContainer>
               <BarChart
-                data={topList.map(x => ({ name: x.product!.name.slice(0, 14), qty: x.quantity }))}
+                data={topRows.map(r => ({
+                  name: r.name.slice(0, 14),
+                  value: Math.round((r as any)[topValueKey]),
+                }))}
               >
-                <XAxis dataKey="name" tickMargin={8} />
-                <YAxis tickMargin={8} />
+                <XAxis dataKey="name" />
+                <YAxis />
                 <Tooltip />
-                <Bar dataKey="qty" />
+                <Bar dataKey="value" />
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </section>
-      </div>
 
-      {/* Activity + Alerts */}
-      <div className="dash-panels-pro" style={{ marginTop: 14 }}>
-        <section className="card panel">
-          <div className="panel-head">
-            <div>
-              <div className="panel-title">Actividad reciente</div>
-              <div className="muted">Últimos movimientos</div>
+          {topRows.length === 0 && !loadingTop && (
+            <div className="muted" style={{ marginTop: 8 }}>
+              No hay datos para este filtro.
             </div>
-          </div>
-
-          <div className="list-pro">
-            {activity.map((a, idx) => (
-              <Link key={idx} className="row-pro" href={a.href}>
-                <div className="left">
-                  <span className={`pill ${a.type === "VENTA" ? "ok" : "warn"}`}>{a.type}</span>
-                  <div>
-                    <div className="strong">{a.title}</div>
-                    <div className="muted small">{a.at.toLocaleString("es-CL")} • {a.meta}</div>
-                  </div>
-                </div>
-                <div className="strong">${Math.round(a.amount).toLocaleString("es-CL")}</div>
-              </Link>
-            ))}
-
-            {activity.length === 0 && <div className="muted">Sin actividad en este rango.</div>}
-          </div>
-        </section>
-
-        <section className="card panel">
-          <div className="panel-head">
-            <div>
-              <div className="panel-title">Alertas</div>
-              <div className="muted">Abiertas</div>
-            </div>
-            <Link className="btn" href="/alerts">Ver todas</Link>
-          </div>
-
-          <div className="list-pro">
-            {alerts.map(a => (
-              <div key={a.id} className="row-pro static">
-                <div className="left">
-                  <span className={`pill ${a.severity === "ALTA" ? "danger" : "warn"}`}>{a.type}</span>
-                  <div>
-                    <div className="strong">{a.message}</div>
-                    <div className="muted small">{new Date(a.createdAt).toLocaleString("es-CL")}</div>
-                  </div>
-                </div>
-                <span className={`chip ${a.severity === "ALTA" ? "danger" : "ok"}`}>{a.severity}</span>
-              </div>
-            ))}
-            {alerts.length === 0 && <div className="muted">No hay alertas abiertas 🎉</div>}
-          </div>
+          )}
         </section>
       </div>
     </>

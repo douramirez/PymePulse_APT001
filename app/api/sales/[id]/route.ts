@@ -10,8 +10,9 @@ export async function GET(_: Request, ctx: { params: { id: string } }) {
   const organizationId = (session as any).organizationId as string;
   const id = ctx.params.id;
 
-  const sale = await prisma.sale.findUnique({
-    where: { id },
+  // ✅ trae directo con where multi-tenant (más limpio que doble query)
+  const sale = await prisma.sale.findFirst({
+    where: { id, organizationId },
     select: {
       id: true,
       dateTime: true,
@@ -24,6 +25,8 @@ export async function GET(_: Request, ctx: { params: { id: string } }) {
           quantity: true,
           unitPrice: true,
           lineTotal: true,
+          unitCost: true,
+          lineProfit: true,
           product: { select: { name: true, sku: true } },
         },
       },
@@ -31,9 +34,6 @@ export async function GET(_: Request, ctx: { params: { id: string } }) {
   });
 
   if (!sale) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  // seguridad multi-tenant
-  const orgCheck = await prisma.sale.findFirst({ where: { id, organizationId }, select: { id: true } });
-  if (!orgCheck) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   return NextResponse.json({
     ...sale,
@@ -42,6 +42,8 @@ export async function GET(_: Request, ctx: { params: { id: string } }) {
       ...i,
       unitPrice: Number(i.unitPrice),
       lineTotal: Number(i.lineTotal),
+      unitCost: Number(i.unitCost),
+      lineProfit: Number(i.lineProfit),
     })),
   });
 }

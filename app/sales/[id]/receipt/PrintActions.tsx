@@ -6,6 +6,7 @@ export default function PrintActions() {
       <button className="btn primary" onClick={() => window.print()}>
         Imprimir
       </button>
+      
     </div>
   );
 }
